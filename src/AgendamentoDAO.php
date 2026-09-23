@@ -53,17 +53,23 @@ class AgendamentoDAO
         $stmt->execute([':st' => $status]);
         return (int) $stmt->fetchColumn();
     }
+ //assinatura não bate com quem chama
+    public function verificarConflito(string $inicio, string $fim, ?int $ignorarId = null): bool
+{
+    $sql = "SELECT COUNT(*) FROM agendamentos a
+            JOIN servicos s ON a.servico_id = s.id
+            WHERE a.status = 'agendado'
+              AND :inicio < DATE_ADD(a.data_hora, INTERVAL s.duracao_min MINUTE)
+              AND :fim > a.data_hora";
+    $params = [':inicio' => $inicio, ':fim' => $fim];
 
-    public function verificarConflito(string $dataHoraInicio, int $duracaoMin): bool
-    {
-        $stmt = $this->pdo->prepare(
-            "SELECT COUNT(*) FROM agendamentos a
-             JOIN servicos s ON a.servico_id = s.id
-             WHERE a.status = 'agendado'
-               AND :novo_inicio < DATE_ADD(a.data_hora, INTERVAL s.duracao_min MINUTE)
-               AND DATE_ADD(:novo_inicio, INTERVAL :duracao MINUTE) > a.data_hora"
-        );
-        $stmt->execute([':novo_inicio' => $dataHoraInicio, ':duracao' => $duracaoMin]);
-        return (int) $stmt->fetchColumn() > 0;
+    if ($ignorarId !== null) {
+        $sql .= " AND a.id != :ignorarId";
+        $params[':ignorarId'] = $ignorarId;
     }
+
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute($params);
+    return (int) $stmt->fetchColumn() > 0;
+}
 }
