@@ -1,0 +1,24 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: --default-time-zone=-03:00
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: glamtime
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/mysql
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+volumes:
+  db_data:
